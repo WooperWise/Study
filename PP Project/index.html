@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    table {
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid black;
+      padding: 10px;
+      cursor: pointer;
+    }
+    .clicked {
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <table id="cellTable">
+  </table>
+
+<div>
+  <label for="rows">Number of Rows:</label>
+  <input type="number" id="rows" min="1" value="5">
+</div>
+<div>
+  <label for="columns">Number of Columns:</label>
+  <input type="number" id="columns" min="1" value="5">
+</div>
+
+<button onclick="generateTable()">Generate Table</button>
+<button onclick="sendRequest()">Send Request</button>
+<div>
+  <label for="iterations">Count of iterations:</label>
+  <input type="number" id="iterations" min="1" value="1">
+</div>
+
+<form id="filterForm">
+  <input type="radio" id="square3x3" name="filterType" value="1" onclick="generateArrays()">
+  <label for="square3x3">Square 3x3</label><br>
+  
+  <input type="radio" id="verticalCross3x3" name="filterType" value="0" onclick="generateArrays()">
+  <label for="verticalCross3x3">Vertical Cross 3x3</label><br>
+
+</form>
+
+<div>
+  <p>Death Array:</p>
+  <div id="deathArray"></div>
+
+  <p>Live Array:</p>
+  <div id="liveArray"></div>
+</div>
+
+<p id="cellStates"></p>
+
+<script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+
+<script>
+   var filterType = "";
+
+var deathArray, liveArray;
+
+function generateArrays() {
+  filterType = document.querySelector('input[name="filterType"]:checked').value;
+
+  if (filterType === "1") {
+    // Square 3x3
+    deathArray = [false, false, false, false, false, false, false, false, false];
+    liveArray = [false, false, false, false, false, false, false, false, false];
+  } else if (filterType === "0") {
+    // Vertical Cross 3x3
+    deathArray = [false, false, false, false, false];
+    liveArray = [false, false, false, false, false];
+  }
+
+  displayArrays();
+}
+
+function displayArrays() {
+  var deathArrayElement = document.getElementById("deathArray");
+  deathArrayElement.innerHTML = "";
+
+  var liveArrayElement = document.getElementById("liveArray");
+  liveArrayElement.innerHTML = "";
+
+  var deathTable = document.createElement("table");
+  var deathRow = document.createElement("tr");
+  var liveTable = document.createElement("table");
+  var liveRow = document.createElement("tr");
+
+  for (var i = 0; i < deathArray.length; i++) {
+    var deathElement = document.createElement("td");
+    deathElement.innerHTML = i;
+    deathElement.classList.add("clickable");
+    deathElement.addEventListener("click", toggleElement.bind(null, i, "death"));
+    if (deathArray[i]) {
+      deathElement.classList.add("clicked");
+    }
+    deathRow.appendChild(deathElement);
+
+    var liveElement = document.createElement("td");
+    liveElement.innerHTML = i;
+    liveElement.classList.add("clickable");
+    liveElement.addEventListener("click", toggleElement.bind(null, i, "live"));
+    if (liveArray[i]) {
+      liveElement.classList.add("clicked");
+    }
+    liveRow.appendChild(liveElement);
+  }
+
+  deathTable.appendChild(deathRow);
+  deathArrayElement.appendChild(deathTable);
+
+  liveTable.appendChild(liveRow);
+  liveArrayElement.appendChild(liveTable);
+}
+
+function toggleElement(index, arrayType) {
+  if (arrayType === "death") {
+    deathArray[index] = !deathArray[index];
+  } else if (arrayType === "live") {
+    liveArray[index] = !liveArray[index];
+  }
+
+  displayArrays();
+}
+</script>
+
+<script>
+  var cellStates = {};
+
+  function generateTable() {
+    var rows = document.getElementById("rows").value;
+    var columns = document.getElementById("columns").value;
+    var table = document.getElementById("cellTable");
+    table.innerHTML = "";
+    cellStates = {};
+
+    for (var i = 0; i < rows; i++) {
+      var row = document.createElement("tr");
+      for (var j = 0; j < columns; j++) {
+        var cell = document.createElement("td");
+        var cellId = i + "-" + j;
+        cell.setAttribute("id", cellId);
+        cell.onclick = function() {
+          cellClicked(this.id);
+        };
+        row.appendChild(cell);
+        cellStates[cellId] = false;
+      }
+      table.appendChild(row);
+    }
+    updateCellStates();
+  }
+
+  function cellClicked(cellId) {
+    var cell = document.getElementById(cellId);
+    cell.classList.toggle("clicked");
+    cellStates[cellId] = !cellStates[cellId];
+    console.log(cellStates);
+    console.log(cellStates["0-0"]);
+    updateCellStates();
+  }
+
+  function updateCellStates() {
+    var cellStatesElement = document.getElementById("cellStates");
+    var states = "";
+    for (var cellId in cellStates) {
+      if (cellStates.hasOwnProperty(cellId)) {
+        states += cellId + ": " + cellStates[cellId] + ", ";
+        var cell = document.getElementById(cellId);
+        cell.classList.toggle("clicked", cellStates[cellId]);
+      }
+    }
+    cellStatesElement.textContent = "Cell States: " + states;
+  }
+
+  function sendRequest() {
+
+    var rows = document.getElementById("rows").value;
+    var columns = document.getElementById("columns").value;
+    var iterations = document.getElementById("iterations").value;
+    
+
+    var requestData = {
+      alive : liveArray,
+      death : deathArray,
+      filterType : document.querySelector('input[name="filterType"]:checked').value,
+      rows: rows,
+      columns: columns,
+      iterations: iterations,
+      cellStates: cellStates
+    };
+
+    axios.post('https://mbb2.ru/proxy/2288/')
+  .then(function (response) {
+    // handle success
+    console.log(response);
+  })
+  .catch(function (error) {
+    // handle error
+    console.log(error);
+  })
+  .finally(function () {
+    // always executed
+  });
+
+    //axios.post('https://mbb2.ru/proxy/2288/', requestData);
+  }
+
+//   var socket;
+//   function connectWebSocket() {
+//     socket = new WebSocket("wss://mbb2.ru/proxy/2288/ws");
+
+//     socket.onopen = function(event) {
+//     var rows = -1;
+//     var columns = -1;
+
+//     var requestData = {
+//       rows: rows,
+//       columns: columns,
+//     };
+
+//     socket.send(JSON.stringify(requestData));
+//     };
+
+//     socket.onmessage = function(event) {
+//       var response = JSON.parse(event.data);
+//       var newCellStates = response.cellStates;
+//       cellStates = newCellStates;
+//       updateCellStates();
+//     };
+
+//     socket.onerror = function(error) {
+//       console.error("WebSocket error:", error);
+//       setTimeout(connectWebSocket, 1000);
+//     };
+
+//     socket.onclose = function(event) {
+//       console.log("WebSocket connection closed", event.code);
+//       setTimeout(connectWebSocket, 1000);
+//     };
+//   }
+
+// connectWebSocket();
+</script>
+
+</body>
+</html>
